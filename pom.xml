@@ -499,6 +499,7 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
+			<!--
 			<plugin>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-contract-maven-plugin</artifactId>
@@ -508,6 +509,7 @@
 					<testFramework>JUNIT5</testFramework>
 				</configuration>
 			</plugin>
+			-->
 			<plugin>
 				<groupId>org.asciidoctor</groupId>
 				<artifactId>asciidoctor-maven-plugin</artifactId>
@@ -533,6 +535,7 @@
 					</dependency>
 				</dependencies>
 			</plugin>
+			<!--
 			<plugin>
 				<groupId>com.vaadin</groupId>
 				<artifactId>vaadin-maven-plugin</artifactId>
@@ -546,6 +549,7 @@
 					</execution>
 				</executions>
 			</plugin>
+			-->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
