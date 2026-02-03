@@ -27,11 +27,11 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>25</java.version>
+		<java.version>17</java.version>
 		<spring-ai.version>2.0.0-M2</spring-ai.version>
 		<spring-cloud.version>2025.1.0</spring-cloud.version>
 		<spring-modulith.version>2.0.2</spring-modulith.version>
-		<vaadin.version>25.0.4</vaadin.version>
+		<vaadin.version>24.6.8</vaadin.version>
 	</properties>
 	<dependencies>
 		<dependency>
