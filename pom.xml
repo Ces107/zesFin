@@ -27,11 +27,11 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>25</java.version>
+		<java.version>17</java.version>
 		<spring-ai.version>2.0.0-M2</spring-ai.version>
 		<spring-cloud.version>2025.1.0</spring-cloud.version>
 		<spring-modulith.version>2.0.2</spring-modulith.version>
-		<vaadin.version>25.0.4</vaadin.version>
+		<vaadin.version>24.6.8</vaadin.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -499,6 +499,7 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
+			<!--
 			<plugin>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-contract-maven-plugin</artifactId>
@@ -508,6 +509,7 @@
 					<testFramework>JUNIT5</testFramework>
 				</configuration>
 			</plugin>
+			-->
 			<plugin>
 				<groupId>org.asciidoctor</groupId>
 				<artifactId>asciidoctor-maven-plugin</artifactId>
@@ -533,6 +535,7 @@
 					</dependency>
 				</dependencies>
 			</plugin>
+			<!--
 			<plugin>
 				<groupId>com.vaadin</groupId>
 				<artifactId>vaadin-maven-plugin</artifactId>
@@ -546,6 +549,7 @@
 					</execution>
 				</executions>
 			</plugin>
+			-->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
