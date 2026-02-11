@@ -22,18 +22,6 @@ function envInt(key: string, fallback: number): number {
   return Number.isNaN(parsed) ? fallback : parsed
 }
 
-function envFloat(key: string, fallback: number): number {
-  const v = env(key)
-  if (v === undefined) return fallback
-  const parsed = parseFloat(v)
-  return Number.isNaN(parsed) ? fallback : parsed
-}
-
-function envBool(key: string, fallback: boolean): boolean {
-  const v = env(key)
-  if (v === undefined) return fallback
-  return v === 'true' || v === '1'
-}
 
 export const config = {
   /** ------ FIRE Calculator ------ */

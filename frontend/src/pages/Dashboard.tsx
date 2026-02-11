@@ -11,7 +11,7 @@ import {
 } from 'recharts'
 import { Wallet, TrendingUp, ArrowDownUp, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
-import Card, { cardVariants } from '../components/Card'
+import Card from '../components/Card'
 import { fetchDashboardSummary, fetchSnapshots } from '../api'
 import type { DashboardSummary, PortfolioSnapshot } from '../types'
 
