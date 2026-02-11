@@ -5,6 +5,7 @@ import ces107.zesFin.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -12,6 +13,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 
 @Component
+@Profile("!prod")
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
@@ -20,6 +22,7 @@ public class DataInitializer implements CommandLineRunner {
     private final PortfolioSnapshotRepository snapshotRepository;
     private final AssetRepository assetRepository;
     private final FireProfileRepository fireProfileRepository;
+    private final UserRepository userRepository;
 
     @Override
     public void run(String... args) {
@@ -29,57 +32,62 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         log.info("Seeding database with sample data...");
-        seedTransactions();
-        seedPortfolioSnapshots();
-        seedAssets();
-        seedFireProfile();
+
+        User demoUser = userRepository.save(User.builder()
+                .googleId("demo")
+                .email("demo@zesfin.dev")
+                .name("Demo User")
+                .pictureUrl("")
+                .build());
+
+        seedTransactions(demoUser);
+        seedPortfolioSnapshots(demoUser);
+        seedAssets(demoUser);
+        seedFireProfile(demoUser);
         log.info("Database seeding completed");
     }
 
-    private void seedTransactions() {
+    private void seedTransactions(User user) {
         LocalDate now = LocalDate.now();
 
-        // Income transactions
-        transactionRepository.save(Transaction.builder()
+        transactionRepository.save(Transaction.builder().user(user)
                 .amount(new BigDecimal("2800.00")).date(now.minusDays(1))
                 .description("Monthly Salary").type(TransactionType.INCOME).category("Salary").build());
-        transactionRepository.save(Transaction.builder()
+        transactionRepository.save(Transaction.builder().user(user)
                 .amount(new BigDecimal("2800.00")).date(now.minusMonths(1).withDayOfMonth(28))
                 .description("Monthly Salary").type(TransactionType.INCOME).category("Salary").build());
-        transactionRepository.save(Transaction.builder()
+        transactionRepository.save(Transaction.builder().user(user)
                 .amount(new BigDecimal("150.00")).date(now.minusDays(10))
                 .description("Freelance Project").type(TransactionType.INCOME).category("Side Income").build());
-        transactionRepository.save(Transaction.builder()
+        transactionRepository.save(Transaction.builder().user(user)
                 .amount(new BigDecimal("45.20")).date(now.minusDays(5))
                 .description("Dividend - Vanguard Global Stock").type(TransactionType.INCOME).category("Dividends").build());
-        transactionRepository.save(Transaction.builder()
+        transactionRepository.save(Transaction.builder().user(user)
                 .amount(new BigDecimal("2800.00")).date(now.minusMonths(2).withDayOfMonth(28))
                 .description("Monthly Salary").type(TransactionType.INCOME).category("Salary").build());
 
-        // Expense transactions
-        transactionRepository.save(Transaction.builder()
+        transactionRepository.save(Transaction.builder().user(user)
                 .amount(new BigDecimal("750.00")).date(now.minusDays(2))
                 .description("Rent Payment").type(TransactionType.EXPENSE).category("Housing").build());
-        transactionRepository.save(Transaction.builder()
+        transactionRepository.save(Transaction.builder().user(user)
                 .amount(new BigDecimal("600.00")).date(now.minusDays(3))
                 .description("Monthly Investment - MyInvestor").type(TransactionType.EXPENSE).category("Investment").build());
-        transactionRepository.save(Transaction.builder()
+        transactionRepository.save(Transaction.builder().user(user)
                 .amount(new BigDecimal("120.50")).date(now.minusDays(4))
                 .description("Groceries - Mercadona").type(TransactionType.EXPENSE).category("Food").build());
-        transactionRepository.save(Transaction.builder()
+        transactionRepository.save(Transaction.builder().user(user)
                 .amount(new BigDecimal("49.99")).date(now.minusDays(7))
                 .description("Electric Bill").type(TransactionType.EXPENSE).category("Utilities").build());
-        transactionRepository.save(Transaction.builder()
+        transactionRepository.save(Transaction.builder().user(user)
                 .amount(new BigDecimal("35.00")).date(now.minusDays(12))
                 .description("Internet + Phone").type(TransactionType.EXPENSE).category("Utilities").build());
     }
 
-    private void seedPortfolioSnapshots() {
+    private void seedPortfolioSnapshots(User user) {
         LocalDate startDate = LocalDate.now().minusMonths(23).withDayOfMonth(1);
         BigDecimal invested = new BigDecimal("5000.00");
         BigDecimal monthlyContrib = new BigDecimal("600.00");
 
-        // Simulate realistic Boglehead portfolio growth (~7% annual with some volatility)
         double[] monthlyReturns = {
             0.012, -0.005, 0.018, 0.008, -0.015, 0.022,
             0.010, 0.015, -0.008, 0.020, 0.005, 0.012,
@@ -92,21 +100,20 @@ public class DataInitializer implements CommandLineRunner {
         for (int i = 0; i < 24; i++) {
             LocalDate snapshotDate = startDate.plusMonths(i);
 
-            // Apply market return
             double returnRate = monthlyReturns[i];
             portfolioValue = portfolioValue.multiply(BigDecimal.ONE.add(BigDecimal.valueOf(returnRate)))
                     .setScale(2, RoundingMode.HALF_UP);
 
-            // Add contribution (except first month)
             if (i > 0) {
                 invested = invested.add(monthlyContrib);
                 portfolioValue = portfolioValue.add(monthlyContrib);
             }
 
             BigDecimal yieldValue = portfolioValue.subtract(invested);
-            double fixedIncomePct = 20.0; // 80/20 Boglehead split
+            double fixedIncomePct = 20.0;
 
             snapshotRepository.save(PortfolioSnapshot.builder()
+                    .user(user)
                     .date(snapshotDate)
                     .totalInvested(invested)
                     .portfolioValue(portfolioValue)
@@ -117,9 +124,8 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
-    private void seedAssets() {
-        // Typical Boglehead 3-fund portfolio on MyInvestor (UCITS funds)
-        assetRepository.save(Asset.builder()
+    private void seedAssets(User user) {
+        assetRepository.save(Asset.builder().user(user)
                 .name("Vanguard Global Stock Index Fund")
                 .isin("IE00B03HCZ61")
                 .category(AssetCategory.EQUITY)
@@ -130,7 +136,7 @@ public class DataInitializer implements CommandLineRunner {
                 .unrealizedGain(new BigDecimal("1250.00"))
                 .build());
 
-        assetRepository.save(Asset.builder()
+        assetRepository.save(Asset.builder().user(user)
                 .name("Vanguard Emerging Markets Stock Index")
                 .isin("IE0031786142")
                 .category(AssetCategory.EQUITY)
@@ -141,7 +147,7 @@ public class DataInitializer implements CommandLineRunner {
                 .unrealizedGain(new BigDecimal("-100.00"))
                 .build());
 
-        assetRepository.save(Asset.builder()
+        assetRepository.save(Asset.builder().user(user)
                 .name("Vanguard Euro Government Bond Index")
                 .isin("IE0007472990")
                 .category(AssetCategory.BONDS)
@@ -152,7 +158,7 @@ public class DataInitializer implements CommandLineRunner {
                 .unrealizedGain(new BigDecimal("50.00"))
                 .build());
 
-        assetRepository.save(Asset.builder()
+        assetRepository.save(Asset.builder().user(user)
                 .name("Vanguard European Stock Index Fund")
                 .isin("IE0007987708")
                 .category(AssetCategory.EQUITY)
@@ -163,7 +169,7 @@ public class DataInitializer implements CommandLineRunner {
                 .unrealizedGain(new BigDecimal("150.00"))
                 .build());
 
-        assetRepository.save(Asset.builder()
+        assetRepository.save(Asset.builder().user(user)
                 .name("Emergency Fund - MyInvestor Savings")
                 .isin(null)
                 .category(AssetCategory.CASH)
@@ -175,8 +181,9 @@ public class DataInitializer implements CommandLineRunner {
                 .build());
     }
 
-    private void seedFireProfile() {
+    private void seedFireProfile(User user) {
         fireProfileRepository.save(FireProfile.builder()
+                .user(user)
                 .currentAge(30)
                 .currentSavings(new BigDecimal("24900.00"))
                 .monthlyContribution(new BigDecimal("600.00"))

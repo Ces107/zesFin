@@ -9,7 +9,9 @@ import {
   ClipboardList,
   Menu,
   X,
+  LogOut,
 } from 'lucide-react'
+import { useAuth } from '../auth/AuthContext'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -22,6 +24,7 @@ const navItems = [
 export default function Layout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
+  const { user, logout } = useAuth()
 
   return (
     <div className="flex h-screen">
@@ -40,7 +43,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white/[0.03] backdrop-blur-xl border-r border-white/[0.06] transform transition-transform lg:translate-x-0 lg:static ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white/[0.03] backdrop-blur-xl border-r border-white/[0.06] transform transition-transform lg:translate-x-0 lg:static flex flex-col ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -51,7 +54,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <span className="text-lg font-semibold text-white tracking-tight">zesFin</span>
         </div>
 
-        <nav className="mt-6 px-3 space-y-1">
+        <nav className="mt-6 px-3 space-y-1 flex-1">
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
@@ -82,10 +85,36 @@ export default function Layout({ children }: { children: ReactNode }) {
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/[0.06]">
-          <p className="text-xs text-slate-600 text-center tracking-wide">
-            Boglehead Portfolio Tracker
-          </p>
+        <div className="p-4 border-t border-white/[0.06]">
+          {user && (
+            <div className="flex items-center gap-3">
+              {user.pictureUrl ? (
+                <img
+                  src={user.pictureUrl}
+                  alt={user.name}
+                  className="w-8 h-8 rounded-full flex-shrink-0"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-emerald-400 text-xs font-bold">
+                    {user.name?.charAt(0) || user.email.charAt(0)}
+                  </span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-slate-300 truncate">{user.name}</p>
+                <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
+              </div>
+              <button
+                onClick={logout}
+                className="p-1.5 text-slate-500 hover:text-red-400 transition-colors flex-shrink-0 cursor-pointer"
+                title="Logout"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 

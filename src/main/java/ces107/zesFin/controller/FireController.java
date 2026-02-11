@@ -2,11 +2,13 @@ package ces107.zesFin.controller;
 
 import ces107.zesFin.dto.FireProjection;
 import ces107.zesFin.model.FireProfile;
+import ces107.zesFin.model.User;
 import ces107.zesFin.service.FireCalculatorService;
 import ces107.zesFin.service.FireProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,29 +22,32 @@ public class FireController {
     private final FireCalculatorService calculatorService;
 
     @GetMapping("/profiles")
-    public List<FireProfile> getAll() {
-        return profileService.findAll();
+    public List<FireProfile> getAll(@AuthenticationPrincipal User user) {
+        return profileService.findAll(user);
     }
 
     @GetMapping("/profiles/{id}")
-    public FireProfile getById(@PathVariable Long id) {
-        return profileService.findById(id);
+    public FireProfile getById(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        return profileService.findById(id, user);
     }
 
     @PostMapping("/profiles")
     @ResponseStatus(HttpStatus.CREATED)
-    public FireProfile create(@Valid @RequestBody FireProfile profile) {
-        return profileService.create(profile);
+    public FireProfile create(@Valid @RequestBody FireProfile profile,
+                              @AuthenticationPrincipal User user) {
+        return profileService.create(profile, user);
     }
 
     @PutMapping("/profiles/{id}")
-    public FireProfile update(@PathVariable Long id, @Valid @RequestBody FireProfile profile) {
-        return profileService.update(id, profile);
+    public FireProfile update(@PathVariable Long id, @Valid @RequestBody FireProfile profile,
+                              @AuthenticationPrincipal User user) {
+        return profileService.update(id, profile, user);
     }
 
     @GetMapping("/projection/{profileId}")
-    public FireProjection getProjection(@PathVariable Long profileId) {
-        FireProfile profile = profileService.findById(profileId);
+    public FireProjection getProjection(@PathVariable Long profileId,
+                                        @AuthenticationPrincipal User user) {
+        FireProfile profile = profileService.findById(profileId, user);
         return calculatorService.calculate(profile);
     }
 

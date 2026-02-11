@@ -1,8 +1,10 @@
 package ces107.zesFin.controller;
 
 import ces107.zesFin.dto.DashboardSummary;
+import ces107.zesFin.model.User;
 import ces107.zesFin.service.DashboardService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,7 +17,7 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping("/summary")
-    public DashboardSummary getSummary() {
-        return dashboardService.getSummary();
+    public DashboardSummary getSummary(@AuthenticationPrincipal User user) {
+        return dashboardService.getSummary(user);
     }
 }

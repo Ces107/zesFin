@@ -1,9 +1,34 @@
 import axios from 'axios';
-import type { Transaction, PortfolioSnapshot, Asset, DashboardSummary, FireProfile, FireProjection } from './types';
+import type { Transaction, PortfolioSnapshot, Asset, DashboardSummary, FireProfile, FireProjection, AuthUser } from './types';
+
+const TOKEN_KEY = 'zesfin_token';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 });
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem(TOKEN_KEY);
+      window.location.href = '/zesFin/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth
+export const fetchCurrentUser = () =>
+  api.get<AuthUser>('/auth/me').then(r => r.data);
 
 // Dashboard
 export const fetchDashboardSummary = () =>

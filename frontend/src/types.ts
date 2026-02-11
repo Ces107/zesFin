@@ -1,3 +1,10 @@
+export interface AuthUser {
+  id: number
+  email: string
+  name: string
+  pictureUrl: string
+}
+
 export interface Transaction {
   id?: number;
   amount: number;

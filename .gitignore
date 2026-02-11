@@ -42,3 +42,6 @@ frontend/dist/
 .env.local
 *.env.local
 .claude/
+
+### H2 Database ###
+data/
