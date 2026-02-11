@@ -20,5 +20,5 @@ COPY --from=extract /app/dependencies/ ./
 COPY --from=extract /app/spring-boot-loader/ ./
 COPY --from=extract /app/snapshot-dependencies/ ./
 COPY --from=extract /app/application/ ./
-EXPOSE 8080
-ENTRYPOINT ["java", "-Xmx384m", "-Xms256m", "org.springframework.boot.loader.launch.JarLauncher", "--spring.profiles.active=prod"]
+EXPOSE 48080
+ENTRYPOINT ["java", "-Xmx384m", "-Xms256m", "org.springframework.boot.loader.launch.JarLauncher"]
