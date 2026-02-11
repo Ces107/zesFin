@@ -8,7 +8,7 @@ interface AuthContextType {
   loading: boolean
   login: () => void
   logout: () => void
-  setTokenFromCallback: (token: string) => void
+  setTokenFromCallback: (token: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -68,10 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null)
   }, [])
 
-  const setTokenFromCallback = useCallback((newToken: string) => {
+  const setTokenFromCallback = useCallback(async (newToken: string) => {
     localStorage.setItem(TOKEN_KEY, newToken)
     setToken(newToken)
-    fetchUser(newToken)
+    await fetchUser(newToken)
   }, [fetchUser])
 
   return (

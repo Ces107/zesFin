@@ -25,7 +25,7 @@ export default function LoginPage() {
         return
       }
       const data = await res.json()
-      setTokenFromCallback(data.token)
+      await setTokenFromCallback(data.token)
       navigate('/')
     } catch {
       setTestError('Connection error')

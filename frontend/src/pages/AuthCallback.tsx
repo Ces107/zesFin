@@ -10,8 +10,7 @@ export default function AuthCallback() {
   useEffect(() => {
     const token = searchParams.get('token')
     if (token) {
-      setTokenFromCallback(token)
-      navigate('/', { replace: true })
+      setTokenFromCallback(token).then(() => navigate('/', { replace: true }))
     } else {
       navigate('/login', { replace: true })
     }
