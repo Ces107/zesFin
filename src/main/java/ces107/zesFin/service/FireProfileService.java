@@ -1,14 +1,15 @@
 package ces107.zesFin.service;
 
-import ces107.zesFin.exception.ResourceNotFoundException;
-import ces107.zesFin.model.FireProfile;
-import ces107.zesFin.repository.FireProfileRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+
+import ces107.zesFin.exception.ResourceNotFoundException;
+import ces107.zesFin.model.FireProfile;
+import ces107.zesFin.repository.FireProfileRepository;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

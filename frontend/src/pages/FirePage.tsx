@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   AreaChart,
   Area,
@@ -12,7 +13,8 @@ import {
 } from 'recharts'
 import { Flame, Target, Calendar, Rocket } from 'lucide-react'
 import Card from '../components/Card'
-import { fetchFireProfiles, fetchFireProjection, simulateFireProjection } from '../api'
+import { fetchFireProfiles, fetchFireProjection, simulateFireProjection, fetchDashboardSummary } from '../api'
+import { config } from '../config'
 import type { FireProfile, FireProjection } from '../types'
 
 const fmt = (n: number) =>
@@ -22,6 +24,8 @@ const fmt = (n: number) =>
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(n)
+
+const STORAGE_KEY = 'zesfin:fire-profile'
 
 const defaultProfile: FireProfile = {
   currentAge: 30,
@@ -33,6 +37,30 @@ const defaultProfile: FireProfile = {
   safeWithdrawalRate: 0.04,
   targetRetirementAge: 45,
   fireNumber: 450000,
+  annualContributionIncreaseRate: null,
+}
+
+function loadSavedProfile(): FireProfile | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function saveProfile(profile: FireProfile) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(profile))
+}
+
+const container = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
+}
+
+const item = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] } },
 }
 
 export default function FirePage() {
@@ -42,14 +70,29 @@ export default function FirePage() {
   const [simulating, setSimulating] = useState(false)
 
   useEffect(() => {
-    fetchFireProfiles()
-      .then((profiles) => {
+    const saved = loadSavedProfile()
+    if (saved) {
+      setProfile(saved)
+      simulateFireProjection(saved)
+        .then(setProjection)
+        .catch(console.error)
+        .finally(() => setLoading(false))
+      return
+    }
+
+    Promise.all([fetchFireProfiles(), fetchDashboardSummary()])
+      .then(async ([profiles, dashboard]) => {
         if (profiles.length > 0) {
           const p = profiles[0]
           setProfile(p)
           return fetchFireProjection(p.id!)
         }
-        return simulateFireProjection(defaultProfile)
+        const profileWithPortfolio = {
+          ...defaultProfile,
+          currentSavings: dashboard.totalPatrimonio ?? defaultProfile.currentSavings,
+        }
+        setProfile(profileWithPortfolio)
+        return simulateFireProjection(profileWithPortfolio)
       })
       .then(setProjection)
       .catch(console.error)
@@ -61,6 +104,7 @@ export default function FirePage() {
     try {
       const proj = await simulateFireProjection(profile)
       setProjection(proj)
+      saveProfile(profile)
     } catch (e) {
       console.error(e)
     } finally {
@@ -71,13 +115,20 @@ export default function FirePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-400" />
+        <div className="relative h-10 w-10">
+          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-orange-400 border-r-orange-400/40 animate-spin" />
+          <div className="absolute inset-1.5 rounded-full border-2 border-transparent border-b-amber-400/60 animate-spin [animation-direction:reverse] [animation-duration:1.5s]" />
+        </div>
       </div>
     )
   }
 
+  const maxAge = projection?.fireAge
+    ? projection.fireAge + config.fire.yearsAfterFire
+    : undefined
+
   const chartData = projection?.yearlyProjections
-    .filter((_, i) => i % 1 === 0) // show every year
+    .filter((p) => maxAge === undefined || p.age <= maxAge)
     .map((p) => ({
       age: p.age,
       year: p.year,
@@ -86,16 +137,28 @@ export default function FirePage() {
       Contributions: Math.round(p.totalContributions),
     })) ?? []
 
+  const inputClass = 'w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/[0.08] rounded-xl text-white text-sm outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all duration-200'
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Flame className="text-orange-400" size={28} />
-        <h1 className="text-2xl font-bold text-white">FIRE Calculator</h1>
-      </div>
+    <motion.div
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="space-y-8"
+    >
+      <motion.div variants={item} className="flex items-center gap-3">
+        <div className="p-2 rounded-xl bg-orange-500/10 border border-orange-500/20">
+          <Flame className="text-orange-400" size={24} />
+        </div>
+        <h1 className="text-2xl font-bold text-white tracking-tight">FIRE Calculator</h1>
+      </motion.div>
 
       {/* Summary Cards */}
       {projection && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <motion.div
+          variants={container}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        >
           <Card
             title="FIRE Number"
             value={fmt(projection.fireNumber)}
@@ -124,52 +187,100 @@ export default function FirePage() {
             icon={<Flame size={18} />}
             trend="up"
           />
-        </div>
+        </motion.div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Input Form */}
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
-          <h2 className="text-lg font-semibold text-white mb-4">Your Profile</h2>
-          <div className="space-y-3">
+        <motion.div
+          variants={item}
+          className="rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-md p-6"
+        >
+          <h2 className="text-lg font-semibold text-white mb-5 tracking-tight">Your Profile</h2>
+          <div className="space-y-4">
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Current Age</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Current Age</label>
               <input
                 type="number"
                 value={profile.currentAge}
                 onChange={(e) => setProfile({ ...profile, currentAge: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Current Savings</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Current Savings</label>
               <input
                 type="number"
                 value={profile.currentSavings}
                 onChange={(e) => setProfile({ ...profile, currentSavings: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Monthly Contribution</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Monthly Contribution</label>
               <input
                 type="number"
                 value={profile.monthlyContribution}
                 onChange={(e) => setProfile({ ...profile, monthlyContribution: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Monthly Expenses</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Monthly Expenses</label>
               <input
                 type="number"
                 value={profile.monthlyExpenses}
                 onChange={(e) => setProfile({ ...profile, monthlyExpenses: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                className={inputClass}
               />
             </div>
+
+            {/* Variable contributions toggle */}
+            <div className="flex items-center gap-3 py-1">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={profile.annualContributionIncreaseRate != null && profile.annualContributionIncreaseRate > 0}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      annualContributionIncreaseRate: e.target.checked ? 0.05 : null,
+                    })
+                  }
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-white/[0.1] peer-focus:ring-2 peer-focus:ring-orange-500/40 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-600 transition-colors" />
+              </label>
+              <span className="text-xs font-medium text-slate-400">Variable contributions</span>
+            </div>
+
+            {profile.annualContributionIncreaseRate != null && profile.annualContributionIncreaseRate > 0 && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                  Annual Increase Rate ({((profile.annualContributionIncreaseRate ?? 0) * 100).toFixed(0)}%)
+                </label>
+                <input
+                  type="range"
+                  min="0.01"
+                  max="0.30"
+                  step="0.01"
+                  value={profile.annualContributionIncreaseRate ?? 0.05}
+                  onChange={(e) => setProfile({ ...profile, annualContributionIncreaseRate: parseFloat(e.target.value) })}
+                  className="w-full accent-orange-500"
+                />
+                <p className="text-xs text-slate-500 mt-1.5">
+                  Year 1: {fmt(profile.monthlyContribution * 12)} &rarr; Year 10: {fmt(profile.monthlyContribution * 12 * Math.pow(1 + (profile.annualContributionIncreaseRate ?? 0), 10))}
+                </p>
+              </motion.div>
+            )}
+
             <div>
-              <label className="block text-xs text-gray-400 mb-1">
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">
                 Expected Annual Return ({(profile.expectedReturnRate * 100).toFixed(1)}%)
               </label>
               <input
@@ -183,7 +294,7 @@ export default function FirePage() {
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">
                 Inflation Rate ({(profile.inflationRate * 100).toFixed(1)}%)
               </label>
               <input
@@ -197,7 +308,7 @@ export default function FirePage() {
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">
                 Safe Withdrawal Rate ({(profile.safeWithdrawalRate * 100).toFixed(1)}%)
               </label>
               <input
@@ -210,19 +321,32 @@ export default function FirePage() {
                 className="w-full accent-orange-500"
               />
             </div>
-            <button
+
+            <motion.button
+              whileHover={{ scale: 1.03, boxShadow: '0 0 28px rgba(249,115,22,0.3)' }}
+              whileTap={{ scale: 0.97 }}
               onClick={handleSimulate}
               disabled={simulating}
-              className="w-full py-2.5 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+              className="w-full py-3 bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-200 shadow-lg shadow-orange-500/20"
             >
-              {simulating ? 'Calculating...' : 'Simulate'}
-            </button>
+              {simulating ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="h-4 w-4 rounded-full border-2 border-transparent border-t-white animate-spin" />
+                  Calculating...
+                </span>
+              ) : (
+                'Simulate'
+              )}
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Chart */}
-        <div className="lg:col-span-2 bg-gray-900 rounded-xl border border-gray-800 p-5">
-          <h2 className="text-lg font-semibold text-white mb-4">Capital Growth Projection</h2>
+        <motion.div
+          variants={item}
+          className="lg:col-span-2 rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-md p-6"
+        >
+          <h2 className="text-lg font-semibold text-white mb-5 tracking-tight">Capital Growth Projection</h2>
           <ResponsiveContainer width="100%" height={400}>
             <AreaChart data={chartData}>
               <defs>
@@ -235,20 +359,37 @@ export default function FirePage() {
                   <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="age" stroke="#6b7280" fontSize={12} label={{ value: 'Age', position: 'insideBottom', offset: -5, fill: '#6b7280' }} />
-              <YAxis stroke="#6b7280" fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <XAxis
+                dataKey="age"
+                stroke="rgba(255,255,255,0.2)"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                label={{ value: 'Age', position: 'insideBottom', offset: -5, fill: 'rgba(255,255,255,0.3)' }}
+              />
+              <YAxis
+                stroke="rgba(255,255,255,0.2)"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+              />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#1f2937',
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
+                  backgroundColor: 'rgba(15, 15, 30, 0.9)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '12px',
                   color: '#fff',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                 }}
                 formatter={(value) => [fmt(Number(value)), undefined]}
                 labelFormatter={(age) => `Age ${age}`}
               />
-              <Legend />
+              <Legend
+                wrapperStyle={{ paddingTop: '16px' }}
+              />
               {projection?.fireAge && (
                 <ReferenceLine
                   x={projection.fireAge}
@@ -289,25 +430,36 @@ export default function FirePage() {
               />
             </AreaChart>
           </ResponsiveContainer>
+
           {projection?.fireAchievable && projection.fireAge && (
-            <div className="mt-4 p-3 bg-emerald-900/30 border border-emerald-800 rounded-lg">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-5 p-4 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/20 backdrop-blur-sm"
+            >
               <p className="text-sm text-emerald-300">
                 At your current savings rate, you can achieve financial independence at age{' '}
-                <strong>{projection.fireAge}</strong> (year {projection.yearlyProjections.find(p => p.age === projection.fireAge)?.year ?? ''}), with{' '}
-                <strong>{fmt(projection.projectedSavingsAtFire)}</strong> accumulated.
+                <strong className="text-emerald-200">{projection.fireAge}</strong> (year {projection.yearlyProjections.find(p => p.age === projection.fireAge)?.year ?? ''}), with{' '}
+                <strong className="text-emerald-200">{fmt(projection.projectedSavingsAtFire)}</strong> accumulated.
               </p>
-            </div>
+            </motion.div>
           )}
           {projection && !projection.fireAchievable && (
-            <div className="mt-4 p-3 bg-red-900/30 border border-red-800 rounded-lg">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-5 p-4 rounded-xl bg-red-500/[0.08] border border-red-500/20 backdrop-blur-sm"
+            >
               <p className="text-sm text-red-300">
                 With current parameters, FIRE is not achievable before age 100.
                 Try increasing your monthly contribution or reducing expenses.
               </p>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   )
 }

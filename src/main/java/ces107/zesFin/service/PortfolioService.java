@@ -27,6 +27,18 @@ public class PortfolioService {
         return repository.save(snapshot);
     }
 
+    public PortfolioSnapshot update(Long id, PortfolioSnapshot snapshot) {
+        PortfolioSnapshot existing = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("PortfolioSnapshot", id));
+        existing.setDate(snapshot.getDate());
+        existing.setTotalInvested(snapshot.getTotalInvested());
+        existing.setPortfolioValue(snapshot.getPortfolioValue());
+        existing.setMonthlyContribution(snapshot.getMonthlyContribution());
+        existing.setFixedIncomePercentage(snapshot.getFixedIncomePercentage());
+        existing.setYield(snapshot.getYield());
+        return repository.save(existing);
+    }
+
     public void delete(Long id) {
         if (!repository.existsById(id)) {
             throw new ResourceNotFoundException("PortfolioSnapshot", id);

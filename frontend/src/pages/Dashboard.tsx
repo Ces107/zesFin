@@ -10,7 +10,8 @@ import {
   Legend,
 } from 'recharts'
 import { Wallet, TrendingUp, ArrowDownUp, Target } from 'lucide-react'
-import Card from '../components/Card'
+import { motion } from 'framer-motion'
+import Card, { cardVariants } from '../components/Card'
 import { fetchDashboardSummary, fetchSnapshots } from '../api'
 import type { DashboardSummary, PortfolioSnapshot } from '../types'
 
@@ -40,7 +41,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400" />
+        <div className="w-8 h-8 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin" />
       </div>
     )
   }
@@ -60,10 +61,22 @@ export default function Dashboard() {
       : '0'
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-8"
+    >
+      <h1 className="text-2xl font-bold text-white tracking-tight">Dashboard</h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <motion.div
+        variants={{
+          hidden: { opacity: 0 },
+          show: { opacity: 1, transition: { staggerChildren: 0.08 } },
+        }}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+      >
         <Card
           title="Total Patrimonio"
           value={fmt(summary?.totalPatrimonio ?? 0)}
@@ -89,11 +102,11 @@ export default function Dashboard() {
           icon={<ArrowDownUp size={18} />}
           trend={(summary?.netCashFlow ?? 0) >= 0 ? 'up' : 'down'}
         />
-      </div>
+      </motion.div>
 
       {/* Portfolio Evolution Chart */}
-      <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
-        <h2 className="text-lg font-semibold text-white mb-4">
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-md p-6">
+        <h2 className="text-lg font-semibold text-white tracking-tight mb-4">
           Portfolio Evolution
         </h2>
         <ResponsiveContainer width="100%" height={350}>
@@ -108,15 +121,17 @@ export default function Dashboard() {
                 <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis dataKey="date" stroke="#6b7280" fontSize={12} />
             <YAxis stroke="#6b7280" fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#1f2937',
-                border: '1px solid #374151',
-                borderRadius: '8px',
+                backgroundColor: 'rgba(15,15,30,0.85)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '12px',
                 color: '#fff',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
               }}
               formatter={(value) => [fmt(Number(value)), undefined]}
             />
@@ -140,6 +155,6 @@ export default function Dashboard() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </motion.div>
   )
 }

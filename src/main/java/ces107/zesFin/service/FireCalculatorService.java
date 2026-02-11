@@ -18,7 +18,7 @@ public class FireCalculatorService {
     private static final int MAX_PROJECTION_YEARS = 60;
 
     public FireProjection calculate(FireProfile profile) {
-        BigDecimal annualContribution = profile.getMonthlyContribution()
+        BigDecimal baseAnnualContribution = profile.getMonthlyContribution()
                 .multiply(BigDecimal.valueOf(12));
         BigDecimal annualExpenses = profile.getMonthlyExpenses()
                 .multiply(BigDecimal.valueOf(12));
@@ -30,6 +30,9 @@ public class FireCalculatorService {
         // Adjust FIRE number for inflation each year
         double realReturn = (1 + profile.getExpectedReturnRate()) /
                 (1 + profile.getInflationRate()) - 1;
+
+        Double increaseRate = profile.getAnnualContributionIncreaseRate();
+        boolean variableContributions = increaseRate != null && increaseRate > 0;
 
         BigDecimal savings = profile.getCurrentSavings();
         BigDecimal totalContributions = profile.getCurrentSavings();
@@ -44,6 +47,12 @@ public class FireCalculatorService {
             BigDecimal inflatedFireNumber = fireNumber.multiply(
                     BigDecimal.valueOf(Math.pow(1 + profile.getInflationRate(), year)), MC);
 
+            // Calculate current year's contribution (variable or fixed)
+            BigDecimal yearContribution = variableContributions
+                    ? baseAnnualContribution.multiply(
+                            BigDecimal.valueOf(Math.pow(1 + increaseRate, year)), MC)
+                    : baseAnnualContribution;
+
             boolean milestone = fireAge == -1 && savings.compareTo(inflatedFireNumber) >= 0;
             if (milestone) {
                 fireAge = age;
@@ -57,15 +66,16 @@ public class FireCalculatorService {
                     .totalContributions(totalContributions.setScale(2, RoundingMode.HALF_UP))
                     .totalGrowth(savings.subtract(totalContributions).setScale(2, RoundingMode.HALF_UP))
                     .fireNumber(inflatedFireNumber.setScale(2, RoundingMode.HALF_UP))
+                    .annualContribution(yearContribution.setScale(2, RoundingMode.HALF_UP))
                     .fireMilestone(milestone)
                     .build());
 
             if (age >= 100) break;
 
-            // Compound: savings = savings * (1 + realReturn) + annualContribution
+            // Compound: savings = savings * (1 + realReturn) + yearContribution
             BigDecimal growth = savings.multiply(BigDecimal.valueOf(realReturn), MC);
-            savings = savings.add(growth).add(annualContribution);
-            totalContributions = totalContributions.add(annualContribution);
+            savings = savings.add(growth).add(yearContribution);
+            totalContributions = totalContributions.add(yearContribution);
         }
 
         return FireProjection.builder()

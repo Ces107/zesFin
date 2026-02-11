@@ -186,6 +186,7 @@ public class DataInitializer implements CommandLineRunner {
                 .safeWithdrawalRate(0.04)
                 .targetRetirementAge(45)
                 .fireNumber(new BigDecimal("450000.00"))
+                .annualContributionIncreaseRate(0.10)
                 .build());
     }
 }

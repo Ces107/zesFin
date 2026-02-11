@@ -34,6 +34,11 @@ public class PortfolioController {
         return portfolioService.create(snapshot);
     }
 
+    @PutMapping("/{id}")
+    public PortfolioSnapshot update(@PathVariable Long id, @Valid @RequestBody PortfolioSnapshot snapshot) {
+        return portfolioService.update(id, snapshot);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {

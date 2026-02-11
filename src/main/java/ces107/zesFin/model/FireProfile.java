@@ -41,4 +41,6 @@ public class FireProfile {
     private Integer targetRetirementAge;
 
     private BigDecimal fireNumber; // calculated: monthlyExpenses * 12 / SWR
+
+    private Double annualContributionIncreaseRate; // e.g., 0.10 for 10% annual increase
 }

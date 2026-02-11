@@ -28,6 +28,7 @@ public class FireProjection {
         private BigDecimal totalContributions;
         private BigDecimal totalGrowth;
         private BigDecimal fireNumber;
+        private BigDecimal annualContribution;
         private boolean fireMilestone;
     }
 }

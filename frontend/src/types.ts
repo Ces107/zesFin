@@ -48,6 +48,7 @@ export interface FireProfile {
   safeWithdrawalRate: number;
   targetRetirementAge: number;
   fireNumber: number;
+  annualContributionIncreaseRate: number | null;
 }
 
 export interface YearlyProjection {
@@ -57,6 +58,7 @@ export interface YearlyProjection {
   totalContributions: number;
   totalGrowth: number;
   fireNumber: number;
+  annualContribution: number;
   fireMilestone: boolean;
 }
 

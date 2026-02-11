@@ -26,12 +26,24 @@ export const fetchSnapshots = () =>
 export const fetchLatestSnapshot = () =>
   api.get<PortfolioSnapshot>('/portfolio/snapshots/latest').then(r => r.data);
 
+export const createSnapshot = (snapshot: PortfolioSnapshot) =>
+  api.post<PortfolioSnapshot>('/portfolio/snapshots', snapshot).then(r => r.data);
+
+export const updateSnapshot = (id: number, snapshot: PortfolioSnapshot) =>
+  api.put<PortfolioSnapshot>(`/portfolio/snapshots/${id}`, snapshot).then(r => r.data);
+
+export const deleteSnapshot = (id: number) =>
+  api.delete(`/portfolio/snapshots/${id}`);
+
 // Assets
 export const fetchAssets = () =>
   api.get<Asset[]>('/assets').then(r => r.data);
 
 export const createAsset = (asset: Asset) =>
   api.post<Asset>('/assets', asset).then(r => r.data);
+
+export const updateAsset = (id: number, asset: Asset) =>
+  api.put<Asset>(`/assets/${id}`, asset).then(r => r.data);
 
 export const deleteAsset = (id: number) =>
   api.delete(`/assets/${id}`);
