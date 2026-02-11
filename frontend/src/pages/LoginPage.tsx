@@ -1,7 +1,38 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, setTokenFromCallback } = useAuth()
+  const navigate = useNavigate()
+
+  // TODO: Remove test login state and handler when OAuth2 is fully working in production
+  const [testCode, setTestCode] = useState('')
+  const [testError, setTestError] = useState('')
+  const [testLoading, setTestLoading] = useState(false)
+
+  const handleTestLogin = async () => {
+    setTestError('')
+    setTestLoading(true)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/test-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: testCode }),
+      })
+      if (!res.ok) {
+        setTestError('Invalid test code')
+        return
+      }
+      const data = await res.json()
+      setTokenFromCallback(data.token)
+      navigate('/')
+    } catch {
+      setTestError('Connection error')
+    } finally {
+      setTestLoading(false)
+    }
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen">
@@ -24,6 +55,29 @@ export default function LoginPage() {
           </svg>
           Sign in with Google
         </button>
+
+        {/* TODO: Remove test login UI when OAuth2 is fully working in production */}
+        <div className="mt-6 pt-6 border-t border-white/[0.06]">
+          <p className="text-slate-500 text-xs mb-3">Test Login</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={testCode}
+              onChange={(e) => setTestCode(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleTestLogin()}
+              placeholder="Enter test code..."
+              className="flex-1 px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm placeholder-slate-500 outline-none focus:border-emerald-500/50"
+            />
+            <button
+              onClick={handleTestLogin}
+              disabled={testLoading || !testCode}
+              className="px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 rounded-lg text-emerald-400 text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {testLoading ? '...' : 'Go'}
+            </button>
+          </div>
+          {testError && <p className="text-red-400 text-xs mt-2">{testError}</p>}
+        </div>
       </div>
     </div>
   )

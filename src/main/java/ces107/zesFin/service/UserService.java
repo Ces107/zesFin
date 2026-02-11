@@ -22,6 +22,21 @@ public class UserService {
      * @param pictureUrl profile picture URL from Google
      * @return the persisted User entity
      */
+    // TODO: Remove test user method when OAuth2 is fully working in production
+    public User findOrCreateTestUser() {
+        return repository.findByGoogleId("test-user")
+                .map(existing -> {
+                    existing.setLastLoginAt(LocalDateTime.now());
+                    return repository.save(existing);
+                })
+                .orElseGet(() -> repository.save(User.builder()
+                        .googleId("test-user")
+                        .email("test@zesfin.dev")
+                        .name("Test User")
+                        .pictureUrl("")
+                        .build()));
+    }
+
     public User findOrCreateFromGoogle(String googleId, String email, String name, String pictureUrl) {
         return repository.findByGoogleId(googleId)
                 .map(existing -> {

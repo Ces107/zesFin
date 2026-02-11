@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/login-url",
+                                "/api/auth/test-login", // TODO: Remove test login permit when OAuth2 is fully working in production
                                 "/oauth2/**",
                                 "/login/**",
                                 "/actuator/health",
