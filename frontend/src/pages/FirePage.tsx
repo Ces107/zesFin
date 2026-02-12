@@ -70,33 +70,51 @@ export default function FirePage() {
   const [simulating, setSimulating] = useState(false)
 
   useEffect(() => {
-    const saved = loadSavedProfile()
-    if (saved) {
-      setProfile(saved)
-      simulateFireProjection(saved)
-        .then(setProjection)
-        .catch(console.error)
-        .finally(() => setLoading(false))
-      return
-    }
+    const loadData = async () => {
+      try {
+        const saved = loadSavedProfile()
+        if (saved) {
+          setProfile(saved)
+          const proj = await simulateFireProjection(saved)
+          setProjection(proj)
+          return
+        }
 
-    Promise.all([fetchFireProfiles(), fetchDashboardSummary()])
-      .then(async ([profiles, dashboard]) => {
-        if (profiles.length > 0) {
+        const [profiles, dashboard] = await Promise.all([
+          fetchFireProfiles(),
+          fetchDashboardSummary(),
+        ])
+
+        if (profiles.length > 0 && profiles[0].id) {
           const p = profiles[0]
           setProfile(p)
-          return fetchFireProjection(p.id!)
+          const proj = await fetchFireProjection(p.id!)
+          setProjection(proj)
+        } else {
+          const profileWithPortfolio = {
+            ...defaultProfile,
+            currentSavings: dashboard.totalPatrimonio ?? defaultProfile.currentSavings,
+          }
+          setProfile(profileWithPortfolio)
+          const proj = await simulateFireProjection(profileWithPortfolio)
+          setProjection(proj)
         }
-        const profileWithPortfolio = {
-          ...defaultProfile,
-          currentSavings: dashboard.totalPatrimonio ?? defaultProfile.currentSavings,
+      } catch (error) {
+        console.error('Error loading FIRE data:', error)
+        // Set default projection even on error so the page renders
+        setProfile(defaultProfile)
+        try {
+          const proj = await simulateFireProjection(defaultProfile)
+          setProjection(proj)
+        } catch (e) {
+          console.error('Error simulating default profile:', e)
         }
-        setProfile(profileWithPortfolio)
-        return simulateFireProjection(profileWithPortfolio)
-      })
-      .then(setProjection)
-      .catch(console.error)
-      .finally(() => setLoading(false))
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
   }, [])
 
   const handleSimulate = async () => {
@@ -127,7 +145,7 @@ export default function FirePage() {
     ? projection.fireAge + config.fire.yearsAfterFire
     : undefined
 
-  const chartData = projection?.yearlyProjections
+  const chartData = (projection?.yearlyProjections ?? [])
     .filter((p) => maxAge === undefined || p.age <= maxAge)
     .map((p) => ({
       age: p.age,
@@ -135,7 +153,7 @@ export default function FirePage() {
       'Total Savings': Math.round(p.totalSavings),
       'FIRE Number': Math.round(p.fireNumber),
       Contributions: Math.round(p.totalContributions),
-    })) ?? []
+    }))
 
   const inputClass = 'w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/[0.08] rounded-xl text-white text-sm outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all duration-200'
 
