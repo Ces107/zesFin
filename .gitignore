@@ -33,6 +33,11 @@ build/
 ### VS Code ###
 .vscode/
 
+### Environment files with secrets ###
+.env.production.local
+.env.local
+.env.*.local
+
 ### Frontend ###
 frontend/node_modules/
 frontend/dist/
