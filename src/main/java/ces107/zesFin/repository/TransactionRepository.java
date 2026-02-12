@@ -23,4 +23,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
            "COALESCE(SUM(CASE WHEN t.type = 'EXPENSE' THEN t.amount ELSE 0 END), 0) " +
            "FROM Transaction t WHERE t.user = :user AND t.date BETWEEN :start AND :end")
     BigDecimal netCashFlow(@Param("user") User user, @Param("start") LocalDate start, @Param("end") LocalDate end);
+
+    List<Transaction> findAllByIsRecurringTrueAndNextExecutionDateLessThanEqual(LocalDate date);
 }

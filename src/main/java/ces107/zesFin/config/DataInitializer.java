@@ -13,7 +13,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 
 @Component
-@Profile("!prod")
+@Profile("!prod & !test")
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
@@ -109,17 +109,24 @@ public class DataInitializer implements CommandLineRunner {
                 portfolioValue = portfolioValue.add(monthlyContrib);
             }
 
-            BigDecimal yieldValue = portfolioValue.subtract(invested);
-            double fixedIncomePct = 20.0;
+            final double fixedIncomePct = 20.0;
 
             snapshotRepository.save(PortfolioSnapshot.builder()
                     .user(user)
                     .date(snapshotDate)
-                    .totalInvested(invested)
-                    .portfolioValue(portfolioValue)
+                    .entryType(EntryType.TOTAL_INVESTED)
+                    .value(invested)
                     .monthlyContribution(monthlyContrib)
                     .fixedIncomePercentage(fixedIncomePct)
-                    .yield(yieldValue)
+                    .build());
+
+            snapshotRepository.save(PortfolioSnapshot.builder()
+                    .user(user)
+                    .date(snapshotDate)
+                    .entryType(EntryType.PORTFOLIO_VALUE)
+                    .value(portfolioValue)
+                    .monthlyContribution(monthlyContrib)
+                    .fixedIncomePercentage(fixedIncomePct)
                     .build());
         }
     }

@@ -12,16 +12,20 @@ export interface Transaction {
   description: string;
   type: 'INCOME' | 'EXPENSE';
   category: string;
+  isRecurring?: boolean;
+  recurrenceType?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+  nextExecutionDate?: string;
 }
+
+export type EntryType = 'TOTAL_INVESTED' | 'PORTFOLIO_VALUE' | 'NET_WORTH' | 'LIQUID_ASSETS';
 
 export interface PortfolioSnapshot {
   id?: number;
   date: string;
-  totalInvested: number;
-  portfolioValue: number;
-  monthlyContribution: number;
-  fixedIncomePercentage: number;
-  yield: number;
+  entryType: EntryType;
+  value: number;
+  monthlyContribution?: number;
+  fixedIncomePercentage?: number;
 }
 
 export interface Asset {

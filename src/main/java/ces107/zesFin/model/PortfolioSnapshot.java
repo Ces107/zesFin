@@ -10,7 +10,8 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "portfolio_snapshots",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"date", "user_id"}))
+        uniqueConstraints = @UniqueConstraint(name = "uk_snapshot_date_user_type",
+                columnNames = {"date", "user_id", "entry_type"}))
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
@@ -29,15 +30,14 @@ public class PortfolioSnapshot {
     private LocalDate date;
 
     @NotNull
-    private BigDecimal totalInvested;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "entry_type")
+    private EntryType entryType;
 
     @NotNull
-    private BigDecimal portfolioValue;
+    private BigDecimal value;
 
-    @NotNull
     private BigDecimal monthlyContribution;
 
     private Double fixedIncomePercentage;
-
-    private BigDecimal yield;
 }

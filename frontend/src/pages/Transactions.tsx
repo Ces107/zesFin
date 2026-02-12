@@ -3,6 +3,14 @@ import { Plus, Trash2, ArrowUpCircle, ArrowDownCircle, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { fetchTransactions, createTransaction, deleteTransaction } from '../api'
 import type { Transaction } from '../types'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-EU', {
@@ -34,6 +42,9 @@ export default function Transactions() {
     description: '',
     type: 'EXPENSE',
     category: 'Other',
+    isRecurring: false,
+    recurrenceType: 'MONTHLY',
+    nextExecutionDate: '',
   })
 
   const load = () => {
@@ -56,6 +67,9 @@ export default function Transactions() {
       description: '',
       type: 'EXPENSE',
       category: 'Other',
+      isRecurring: false,
+      recurrenceType: 'MONTHLY',
+      nextExecutionDate: '',
     })
     load()
   }
@@ -67,8 +81,12 @@ export default function Transactions() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin" />
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48 bg-white/[0.05]" />
+          <Skeleton className="h-10 w-40 rounded-xl bg-white/[0.05]" />
+        </div>
+        <Skeleton className="h-96 rounded-2xl bg-white/[0.05]" />
       </div>
     )
   }
@@ -116,7 +134,14 @@ export default function Transactions() {
                       year: 'numeric',
                     })}
                   </td>
-                  <td className="px-5 py-3 text-sm text-white">{tx.description}</td>
+                  <td className="px-5 py-3 text-sm text-white">
+                    {tx.description}
+                    {tx.isRecurring && (
+                      <span className="ml-2 text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">
+                        Recurring
+                      </span>
+                    )}
+                  </td>
                   <td className="px-5 py-3">
                     <span className="inline-flex px-2 py-0.5 text-xs bg-white/[0.06] text-slate-300 border border-white/[0.06] rounded-full">
                       {tx.category}
@@ -209,29 +234,86 @@ export default function Transactions() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1.5">Type</label>
-                    <select
+                    <label className="block text-sm text-slate-300 font-medium mb-1.5">Type</label>
+                    <Select
                       value={form.type}
-                      onChange={(e) => setForm({ ...form, type: e.target.value as 'INCOME' | 'EXPENSE' })}
-                      className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.08] rounded-xl text-white text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 outline-none transition-all duration-200"
+                      onValueChange={(v) => setForm({ ...form, type: v as 'INCOME' | 'EXPENSE' })}
                     >
-                      <option value="EXPENSE">Expense</option>
-                      <option value="INCOME">Income</option>
-                    </select>
+                      <SelectTrigger className="w-full rounded-xl bg-white/[0.05] border-white/[0.08] text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900/95 backdrop-blur-xl border-white/[0.12]">
+                        <SelectItem value="EXPENSE" className="text-white hover:bg-white/[0.1]">Expense</SelectItem>
+                        <SelectItem value="INCOME" className="text-white hover:bg-white/[0.1]">Income</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1.5">Category</label>
-                    <select
+                    <label className="block text-sm text-slate-300 font-medium mb-1.5">Category</label>
+                    <Select
                       value={form.category}
-                      onChange={(e) => setForm({ ...form, category: e.target.value })}
-                      className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.08] rounded-xl text-white text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 outline-none transition-all duration-200"
+                      onValueChange={(v) => setForm({ ...form, category: v })}
                     >
-                      {CATEGORIES.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full rounded-xl bg-white/[0.05] border-white/[0.08] text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900/95 backdrop-blur-xl border-white/[0.12]">
+                        {CATEGORIES.map((c) => (
+                          <SelectItem key={c} value={c} className="text-white hover:bg-white/[0.1]">
+                            {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
+
+                {/* Recurring Transaction Fields */}
+                <div className="col-span-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.isRecurring}
+                      onChange={(e) => setForm({ ...form, isRecurring: e.target.checked })}
+                      className="w-4 h-4 rounded border-white/[0.08] bg-white/[0.05] text-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
+                    />
+                    <span className="text-sm text-slate-300 font-medium">Recurring Transaction</span>
+                  </label>
+                </div>
+
+                {form.isRecurring && (
+                  <>
+                    <div>
+                      <label className="block text-sm text-slate-300 font-medium mb-1.5">Frequency</label>
+                      <Select
+                        value={form.recurrenceType}
+                        onValueChange={(v) => setForm({ ...form, recurrenceType: v as any })}
+                      >
+                        <SelectTrigger className="w-full rounded-xl bg-white/[0.05] border-white/[0.08] text-white">
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900/95 backdrop-blur-xl border-white/[0.12]">
+                          <SelectItem value="DAILY" className="text-white hover:bg-white/[0.1]">Daily</SelectItem>
+                          <SelectItem value="WEEKLY" className="text-white hover:bg-white/[0.1]">Weekly</SelectItem>
+                          <SelectItem value="MONTHLY" className="text-white hover:bg-white/[0.1]">Monthly</SelectItem>
+                          <SelectItem value="YEARLY" className="text-white hover:bg-white/[0.1]">Yearly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-slate-300 font-medium mb-1.5">Next Execution</label>
+                      <input
+                        type="date"
+                        value={form.nextExecutionDate || ''}
+                        onChange={(e) => setForm({ ...form, nextExecutionDate: e.target.value })}
+                        className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.08] rounded-xl text-white text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 outline-none transition-all duration-200"
+                        required={form.isRecurring}
+                      />
+                    </div>
+                  </>
+                )}
+
                 <button
                   type="submit"
                   className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] text-white rounded-xl text-sm font-medium transition-all duration-200"

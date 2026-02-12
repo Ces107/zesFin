@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 import type { Transaction, PortfolioSnapshot, Asset, DashboardSummary, FireProfile, FireProjection, AuthUser } from './types';
 
 const TOKEN_KEY = 'zesfin_token';
@@ -51,11 +52,41 @@ export const fetchSnapshots = () =>
 export const fetchLatestSnapshot = () =>
   api.get<PortfolioSnapshot>('/portfolio/snapshots/latest').then(r => r.data);
 
-export const createSnapshot = (snapshot: PortfolioSnapshot) =>
-  api.post<PortfolioSnapshot>('/portfolio/snapshots', snapshot).then(r => r.data);
+export const createSnapshot = async (snapshot: PortfolioSnapshot) => {
+  try {
+    const response = await api.post<PortfolioSnapshot>('/portfolio/snapshots', snapshot);
+    toast.success('Entry created successfully');
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 409) {
+      const detail = error.response.data.detail || 'Duplicate entry detected';
+      toast.error(detail, {
+        description: 'Please choose a different date or entry type',
+        duration: 5000
+      });
+    } else {
+      toast.error('Failed to create entry');
+    }
+    throw error;
+  }
+};
 
-export const updateSnapshot = (id: number, snapshot: PortfolioSnapshot) =>
-  api.put<PortfolioSnapshot>(`/portfolio/snapshots/${id}`, snapshot).then(r => r.data);
+export const updateSnapshot = async (id: number, snapshot: PortfolioSnapshot) => {
+  try {
+    const response = await api.put<PortfolioSnapshot>(`/portfolio/snapshots/${id}`, snapshot);
+    toast.success('Entry updated successfully');
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 409) {
+      toast.error(error.response.data.detail || 'Duplicate entry detected', {
+        duration: 5000
+      });
+    } else {
+      toast.error('Failed to update entry');
+    }
+    throw error;
+  }
+};
 
 export const deleteSnapshot = (id: number) =>
   api.delete(`/portfolio/snapshots/${id}`);

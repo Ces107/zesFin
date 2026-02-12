@@ -11,6 +11,14 @@ import { TrendingUp, TrendingDown, Plus, Pencil, Trash2, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { fetchAssets, createAsset, updateAsset, deleteAsset } from '../api'
 import type { Asset } from '../types'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const COLORS: Record<string, string> = {
   EQUITY: '#10b981',
@@ -104,8 +112,20 @@ export default function Portfolio() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin" />
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-32 bg-white/[0.05]" />
+          <Skeleton className="h-10 w-32 rounded-lg bg-white/[0.05]" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[1,2,3].map(i => (
+            <Skeleton key={i} className="h-24 rounded-2xl bg-white/[0.05]" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-96 rounded-2xl bg-white/[0.05]" />
+          <Skeleton className="h-96 rounded-2xl bg-white/[0.05]" />
+        </div>
       </div>
     )
   }
@@ -322,16 +342,22 @@ export default function Portfolio() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Category</label>
-                    <select
+                    <label className="block text-sm text-slate-300 font-medium mb-1">Category</label>
+                    <Select
                       value={form.category}
-                      onChange={(e) => setForm({ ...form, category: e.target.value as Asset['category'] })}
-                      className="w-full px-3 py-2 bg-white/[0.05] border border-white/[0.08] rounded-xl text-white text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 outline-none transition-all duration-200"
+                      onValueChange={(v) => setForm({ ...form, category: v as Asset['category'] })}
                     >
-                      {CATEGORIES.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full rounded-xl bg-white/[0.05] border-white/[0.08] text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900/95 backdrop-blur-xl border-white/[0.12]">
+                        {CATEGORIES.map((c) => (
+                          <SelectItem key={c} value={c} className="text-white hover:bg-white/[0.1]">
+                            {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

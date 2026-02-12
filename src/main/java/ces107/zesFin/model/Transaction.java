@@ -40,4 +40,12 @@ public class Transaction {
 
     @NotBlank
     private String category;
+
+    @Builder.Default
+    private Boolean isRecurring = false;
+
+    @Enumerated(EnumType.STRING)
+    private RecurrenceType recurrenceType;
+
+    private LocalDate nextExecutionDate;
 }

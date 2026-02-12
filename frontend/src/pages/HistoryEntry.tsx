@@ -2,7 +2,15 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Pencil, Trash2, X, ClipboardList } from 'lucide-react'
 import { fetchSnapshots, createSnapshot, updateSnapshot, deleteSnapshot } from '../api'
-import type { PortfolioSnapshot } from '../types'
+import type { PortfolioSnapshot, EntryType } from '../types'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-EU', {
@@ -12,11 +20,10 @@ const fmt = (n: number) =>
 
 const emptyForm: PortfolioSnapshot = {
   date: new Date().toISOString().split('T')[0],
-  totalInvested: 0,
-  portfolioValue: 0,
+  entryType: 'TOTAL_INVESTED',
+  value: 0,
   monthlyContribution: 0,
   fixedIncomePercentage: 20,
-  yield: 0,
 }
 
 const container = {
@@ -61,19 +68,19 @@ export default function HistoryEntry() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const payload = {
-      ...form,
-      yield: form.portfolioValue - form.totalInvested,
+    try {
+      if (editingId) {
+        await updateSnapshot(editingId, form)
+      } else {
+        await createSnapshot(form)
+      }
+      setShowModal(false)
+      setForm({ ...emptyForm })
+      setEditingId(null)
+      load()
+    } catch (error) {
+      console.error('Failed to save entry:', error)
     }
-    if (editingId) {
-      await updateSnapshot(editingId, payload)
-    } else {
-      await createSnapshot(payload)
-    }
-    setShowModal(false)
-    setForm({ ...emptyForm })
-    setEditingId(null)
-    load()
   }
 
   const handleDelete = async (id: number) => {
@@ -84,11 +91,15 @@ export default function HistoryEntry() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="relative h-10 w-10">
-          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-indigo-400 border-r-indigo-400/40 animate-spin" />
-          <div className="absolute inset-1.5 rounded-full border-2 border-transparent border-b-purple-400/60 animate-spin [animation-direction:reverse] [animation-duration:1.5s]" />
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-12 w-12 rounded-xl bg-white/[0.05]" />
+            <Skeleton className="h-8 w-48 bg-white/[0.05]" />
+          </div>
+          <Skeleton className="h-10 w-32 rounded-xl bg-white/[0.05]" />
         </div>
+        <Skeleton className="h-96 rounded-2xl bg-white/[0.05]" />
       </div>
     )
   }
@@ -128,9 +139,8 @@ export default function HistoryEntry() {
             <thead>
               <tr className="border-b border-white/[0.06] bg-white/[0.03]">
                 <th className="text-left px-5 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Date</th>
-                <th className="text-right px-5 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Invested</th>
-                <th className="text-right px-5 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Portfolio Value</th>
-                <th className="text-right px-5 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Yield</th>
+                <th className="text-left px-5 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Type</th>
+                <th className="text-right px-5 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Value</th>
                 <th className="text-right px-5 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Monthly Contrib.</th>
                 <th className="px-5 py-3.5"></th>
               </tr>
@@ -145,17 +155,21 @@ export default function HistoryEntry() {
                       year: 'numeric',
                     })}
                   </td>
-                  <td className="px-5 py-3.5 text-sm text-right font-mono text-indigo-400">
-                    {fmt(s.totalInvested)}
+                  <td className="px-5 py-3.5">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      s.entryType === 'TOTAL_INVESTED' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' :
+                      s.entryType === 'PORTFOLIO_VALUE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                      s.entryType === 'NET_WORTH' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                      'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                    }`}>
+                      {s.entryType.replace(/_/g, ' ')}
+                    </span>
                   </td>
-                  <td className="px-5 py-3.5 text-sm text-right font-mono text-emerald-400">
-                    {fmt(s.portfolioValue)}
-                  </td>
-                  <td className={`px-5 py-3.5 text-sm text-right font-mono ${s.yield >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {s.yield >= 0 ? '+' : ''}{fmt(s.yield)}
+                  <td className="px-5 py-3.5 text-sm text-right font-mono text-white font-medium">
+                    {fmt(s.value)}
                   </td>
                   <td className="px-5 py-3.5 text-sm text-right font-mono text-slate-300">
-                    {fmt(s.monthlyContribution)}
+                    {s.monthlyContribution ? fmt(s.monthlyContribution) : '—'}
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -237,7 +251,7 @@ export default function HistoryEntry() {
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1.5">Date</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Date</label>
                   <input
                     type="date"
                     required
@@ -246,46 +260,44 @@ export default function HistoryEntry() {
                     className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all duration-200"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1.5">Total Invested</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={form.totalInvested || ''}
-                      onChange={(e) => setForm({ ...form, totalInvested: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all duration-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1.5">Portfolio Value</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={form.portfolioValue || ''}
-                      onChange={(e) => setForm({ ...form, portfolioValue: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all duration-200"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Entry Type</label>
+                  <Select
+                    value={form.entryType}
+                    onValueChange={(v) => setForm({ ...form, entryType: v as EntryType })}
+                  >
+                    <SelectTrigger className="w-full rounded-xl bg-white/[0.05] border-white/[0.08] text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900/95 backdrop-blur-xl border-white/[0.12]">
+                      <SelectItem value="TOTAL_INVESTED" className="text-white hover:bg-white/[0.1]">Total Invested</SelectItem>
+                      <SelectItem value="PORTFOLIO_VALUE" className="text-white hover:bg-white/[0.1]">Portfolio Value</SelectItem>
+                      <SelectItem value="NET_WORTH" className="text-white hover:bg-white/[0.1]">Net Worth</SelectItem>
+                      <SelectItem value="LIQUID_ASSETS" className="text-white hover:bg-white/[0.1]">Liquid Assets</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1.5">Monthly Contribution</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Value (€)</label>
                   <input
                     type="number"
                     step="0.01"
                     required
-                    value={form.monthlyContribution || ''}
-                    onChange={(e) => setForm({ ...form, monthlyContribution: parseFloat(e.target.value) || 0 })}
+                    value={form.value || ''}
+                    onChange={(e) => setForm({ ...form, value: parseFloat(e.target.value) || 0 })}
                     className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all duration-200"
                   />
                 </div>
-                <div className="p-3.5 bg-white/[0.04] border border-white/[0.06] rounded-xl">
-                  <span className="text-xs text-slate-400">Yield (auto-calculated): </span>
-                  <span className={`text-sm font-mono font-semibold ${(form.portfolioValue - form.totalInvested) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {fmt(form.portfolioValue - form.totalInvested)}
-                  </span>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Monthly Contribution (Optional)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.monthlyContribution || ''}
+                    onChange={(e) => setForm({ ...form, monthlyContribution: parseFloat(e.target.value) || undefined })}
+                    className="w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/[0.08] rounded-xl text-white text-sm focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all duration-200"
+                    placeholder="0.00"
+                  />
                 </div>
                 <motion.button
                   whileHover={{ scale: 1.02, boxShadow: '0 0 24px rgba(16,185,129,0.25)' }}

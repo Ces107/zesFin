@@ -12,8 +12,9 @@ import {
 import { Wallet, TrendingUp, ArrowDownUp, Target } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Card from '../components/Card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { fetchDashboardSummary, fetchSnapshots } from '../api'
-import type { DashboardSummary, PortfolioSnapshot } from '../types'
+import type { DashboardSummary, PortfolioSnapshot, EntryType } from '../types'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-EU', {
@@ -40,20 +41,39 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin" />
+      <div className="space-y-8">
+        <Skeleton className="h-8 w-48 bg-white/[0.05]" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+            <Skeleton key={i} className="h-24 rounded-2xl bg-white/[0.05]" />
+          ))}
+        </div>
+        <Skeleton className="h-96 rounded-2xl bg-white/[0.05]" />
       </div>
     )
   }
 
-  const chartData = snapshots.map((s) => ({
-    date: new Date(s.date).toLocaleDateString('en-US', {
-      month: 'short',
-      year: '2-digit',
-    }),
-    'Portfolio Value': s.portfolioValue,
-    'Total Invested': s.totalInvested,
-  }))
+  const groupedByType = snapshots.reduce((acc, s) => {
+    if (!acc[s.entryType]) acc[s.entryType] = []
+    acc[s.entryType].push(s)
+    return acc
+  }, {} as Record<EntryType, PortfolioSnapshot[]>)
+
+  const allDates = new Set<string>()
+  snapshots.forEach(s => allDates.add(s.date))
+
+  const chartData = Array.from(allDates)
+    .sort()
+    .map(date => {
+      const invested = groupedByType['TOTAL_INVESTED']?.find(s => s.date === date)
+      const portfolio = groupedByType['PORTFOLIO_VALUE']?.find(s => s.date === date)
+
+      return {
+        date: new Date(date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+        'Total Invested': invested?.value || null,
+        'Portfolio Value': portfolio?.value || null,
+      }
+    })
 
   const yieldPct =
     summary && summary.totalInvested > 0
